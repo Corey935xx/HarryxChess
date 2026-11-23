@@ -52,21 +52,29 @@ function getKingSquare(color) {
 
 function animateRenderedMove(animationData) {
   if (!animationData) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const animatePiece = (square, fromRect, toRect) => {
     if (!fromRect || !toRect) return;
-    const piece = boardElement.querySelector('[data-square="' + square + '"] .chess-piece');
+    const cell = boardElement.querySelector('[data-square="' + square + '"]');
+    const piece = cell?.querySelector(".chess-piece");
     if (!piece || typeof piece.animate !== "function") return;
     const dx = fromRect.left - toRect.left;
     const dy = fromRect.top - toRect.top;
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    cell.style.zIndex = "8";
+    piece.style.willChange = "transform";
     const animation = piece.animate(
       [
         { transform: "translate(" + dx + "px, " + dy + "px) translateY(-2%)" },
         { transform: "translateY(-2%)" }
       ],
-      { duration: 190, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" }
+      { duration: 210, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" }
     );
-    animation.onfinish = () => animation.cancel();
+    animation.onfinish = () => {
+      animation.cancel();
+      piece.style.willChange = "";
+      cell.style.zIndex = "";
+    };
   };
 
   animatePiece(animationData.to, animationData.fromRect, animationData.toRect);
