@@ -372,21 +372,22 @@ function scheduleComputerMove() {
     }
     const bestMove = chooseComputerMove(game, difficulty);
     thinking = false;
+    let animationData = null;
     if (bestMove) {
       try {
-        const animationData = moveAnimationData(bestMove);
+        animationData = moveAnimationData(bestMove);
         const move = game.move({
           from: bestMove.from,
           to: bestMove.to,
           promotion: bestMove.promotion || "q"
         });
         playSound(move.captured ? "capture" : (game.isCheck() ? "check" : "move"));
-        updateUI(animationData);
       } catch (error) {
+        animationData = null;
         showToast("The AI couldn't complete its move. Please start a new game.");
       }
     }
-    updateUI();
+    updateUI(animationData);
     if (game.isGameOver()) playSound("end");
   }, 180);
 }
