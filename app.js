@@ -7,8 +7,9 @@ const promotionOptions = $("#promotion-options");
 const howToModal = $("#how-to-modal");
 const toastElement = $("#toast");
 
+// Use the solid chess-piece glyph set for both sides, then colour it by side.
 const PIECES = {
-  wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
+  wp: "♟", wn: "♞", wb: "♝", wr: "♜", wq: "♛", wk: "♚",
   bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚"
 };
 const PIECE_VALUES = { p: 100, n: 320, b: 335, r: 500, q: 950, k: 20000 };
@@ -49,7 +50,53 @@ function getKingSquare(color) {
   return null;
 }
 
-function renderBoard() {
+function animateRenderedMove(animationData) {
+  if (!animationData) return;
+  const animatePiece = (square, fromRect, toRect) => {
+    if (!fromRect || !toRect) return;
+    const piece = boardElement.querySelector('[data-square="' + square + '"] .chess-piece');
+    if (!piece || typeof piece.animate !== "function") return;
+    const dx = fromRect.left - toRect.left;
+    const dy = fromRect.top - toRect.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const animation = piece.animate(
+      [
+        { transform: "translate(" + dx + "px, " + dy + "px) translateY(-2%)" },
+        { transform: "translateY(-2%)" }
+      ],
+      { duration: 190, easing: "cubic-bezier(.2,.75,.25,1)", fill: "both" }
+    );
+    animation.onfinish = () => animation.cancel();
+  };
+
+  animatePiece(animationData.to, animationData.fromRect, animationData.toRect);
+  if (animationData.rookTo) {
+    animatePiece(animationData.rookTo, animationData.rookFromRect, animationData.rookToRect);
+  }
+}
+
+function moveAnimationData(move) {
+  if (!move || !boardElement.isConnected) return null;
+  const rectFor = (square) => {
+    const cell = boardElement.querySelector('[data-square="' + square + '"]');
+    return cell ? cell.getBoundingClientRect() : null;
+  };
+  const data = {
+    to: move.to,
+    fromRect: rectFor(move.from),
+    toRect: rectFor(move.to)
+  };
+  if (move.flags && (move.flags.includes("k") || move.flags.includes("q"))) {
+    const rank = move.color === "w" ? "1" : "8";
+    const kingSide = move.flags.includes("k");
+    data.rookTo = (kingSide ? "f" : "d") + rank;
+    data.rookFromRect = rectFor((kingSide ? "h" : "a") + rank);
+    data.rookToRect = rectFor(data.rookTo);
+  }
+  return data;
+}
+
+function renderBoard(animationData = null) {
   const fragment = document.createDocumentFragment();
   const ranks = flipped ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
   const files = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
@@ -89,6 +136,7 @@ function renderBoard() {
   }
 
   boardElement.replaceChildren(fragment);
+  animateRenderedMove(animationData);
   const leftLabels = flipped ? ["1", "2", "3", "4", "5", "6", "7", "8"] : ["8", "7", "6", "5", "4", "3", "2", "1"];
   const bottomLabels = flipped ? ["h", "g", "f", "e", "d", "c", "b", "a"] : ["a", "b", "c", "d", "e", "f", "g", "h"];
   $(".board-coordinates-left").innerHTML = leftLabels.map((label) => "<span>" + label + "</span>").join("");
@@ -157,9 +205,9 @@ function updateStatus() {
   else hint.textContent = "Select a piece to see its legal moves.";
 }
 
-function updateUI() {
+function updateUI(animationData = null) {
   if (!inGame) return;
-  renderBoard();
+  renderBoard(animationData);
   updatePlayers();
   updateStatus();
   $("#result-banner").hidden = !game.isGameOver();
@@ -292,11 +340,16 @@ function closePromotion() {
 
 function playMove(from, to, promotion = "q") {
   try {
+    const plannedMove = game.moves({ verbose: true }).find((candidate) =>
+      candidate.from === from && candidate.to === to &&
+      (!candidate.promotion || candidate.promotion === promotion)
+    );
+    const animationData = moveAnimationData(plannedMove);
     const move = game.move({ from, to, promotion });
     clearSelection();
     closePromotion();
     playSound(move.captured ? "capture" : (game.isCheck() ? "check" : "move"));
-    updateUI();
+    updateUI(animationData);
     if (game.isGameOver()) playSound("end");
     else if (mode === "ai" && game.turn() !== humanColor) scheduleComputerMove();
     return true;
@@ -321,12 +374,14 @@ function scheduleComputerMove() {
     thinking = false;
     if (bestMove) {
       try {
+        const animationData = moveAnimationData(bestMove);
         const move = game.move({
           from: bestMove.from,
           to: bestMove.to,
           promotion: bestMove.promotion || "q"
         });
         playSound(move.captured ? "capture" : (game.isCheck() ? "check" : "move"));
+        updateUI(animationData);
       } catch (error) {
         showToast("The AI couldn't complete its move. Please start a new game.");
       }
