@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111713">
-  <meta name="description" content="HarryxChess — a modern chess experience. Challenge the AI or play locally with a friend.">
-  <title>HarryxChess — Every move matters</title>
+  <meta name="theme-color" content="#151a18">
+  <meta name="description" content="HarryxChess — challenge the AI or play a friend in a clean, classic chess experience.">
+  <title>HarryxChess — Play chess</title>
   <link rel="icon" type="image/svg+xml" href="./assets/harryxchess-mark.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,38 +15,104 @@
 </head>
 <body>
   <div class="app-background" aria-hidden="true"></div>
-  <header class="site-header">
+
+  <header class="site-header" id="site-header">
     <a class="brand" href="./" aria-label="HarryxChess home">
       <img src="./assets/harryxchess-mark.svg" alt="" class="brand-mark">
       <span class="brand-name">Harryx<span>Chess</span></span>
     </a>
-    <div class="header-right">
+    <div class="header-right" id="home-header-actions">
       <span class="live-indicator"><i></i> READY TO PLAY</span>
-      <a class="header-link" href="#how-to-play">How to play <span aria-hidden="true">↗</span></a>
+      <button class="header-link" id="header-how-to-play" type="button">How to play <span aria-hidden="true">↗</span></button>
     </div>
   </header>
 
   <main class="page-shell">
-    <section class="page-intro">
-      <div>
+    <section class="home-screen" id="home-screen">
+      <div class="home-copy">
         <div class="eyebrow"><span class="eyebrow-line"></span> THE CLASSIC, REIMAGINED</div>
-        <h1>Make your <em>next move.</em></h1>
-        <p>A quiet board. A sharp mind. Your game, your way.</p>
+        <h1>Think ahead.<br><em>Make your move.</em></h1>
+        <p class="home-description">A timeless game of strategy. Challenge the computer or sit down for a match with someone beside you.</p>
+        <div class="home-points">
+          <span><i>✓</i> Classic chess rules</span>
+          <span><i>✓</i> No account needed</span>
+        </div>
+        <div class="home-decoration" aria-hidden="true">
+          <span class="decoration-piece">♞</span>
+          <span class="decoration-line"></span>
+          <span class="decoration-caption">EVERY MOVE MATTERS</span>
+        </div>
       </div>
-      <div class="intro-mark" aria-hidden="true">H<span>X</span></div>
+
+      <section class="setup-card" aria-labelledby="setup-title">
+        <div class="setup-card-heading">
+          <span class="section-kicker">YOUR NEXT MATCH</span>
+          <h2 id="setup-title">Set up your game</h2>
+          <p>Choose how you want to play.</p>
+        </div>
+
+        <div class="mode-choices" role="group" aria-label="Choose game mode">
+          <button class="mode-choice active" data-mode="ai" type="button" aria-pressed="true">
+            <span class="mode-choice-icon">♟</span>
+            <span class="mode-choice-copy"><strong>Single player</strong><small>Challenge Harryx AI</small></span>
+            <span class="choice-check" aria-hidden="true">✓</span>
+          </button>
+          <button class="mode-choice" data-mode="local" type="button" aria-pressed="false">
+            <span class="mode-choice-icon">♟♙</span>
+            <span class="mode-choice-copy"><strong>Two players</strong><small>Play with a friend locally</small></span>
+            <span class="choice-check" aria-hidden="true">✓</span>
+          </button>
+        </div>
+
+        <div class="setup-options" id="ai-settings">
+          <label class="setting-field">
+            <span>DIFFICULTY</span>
+            <select id="difficulty">
+              <option value="easy">Casual</option>
+              <option value="club" selected>Club player</option>
+              <option value="expert">Expert</option>
+            </select>
+          </label>
+          <label class="setting-field">
+            <span>PLAY AS</span>
+            <select id="human-color">
+              <option value="w" selected>White</option>
+              <option value="b">Black</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="two-player-note" id="local-note" hidden>
+          <span class="note-icon">♙</span>
+          <span>Both players use the same device. Take turns at the board.</span>
+        </div>
+
+        <button class="play-button" id="play-game" type="button">Play chess <span>→</span></button>
+        <button class="how-to-button" id="how-to-play" type="button"><span>?</span> How to play chess</button>
+        <div class="setup-footnote"><span class="lock-icon">◇</span> Free to play · No sign-up required</div>
+      </section>
     </section>
 
-    <section class="game-layout" aria-label="Chess game">
-      <section class="board-card">
-        <div class="board-card-top">
-          <div class="opponent-summary">
-            <div class="avatar avatar-dark" id="top-avatar">♚</div>
-            <div class="opponent-copy">
-              <strong id="top-player-name">Harryx AI</strong>
-              <span id="top-player-detail">Computer opponent</span>
-            </div>
+    <section class="game-screen" id="game-screen" hidden aria-label="Chess match">
+      <div class="game-topbar">
+        <button class="back-button" id="back-home" type="button"><span>←</span> MENU</button>
+        <div class="game-mode-label" id="game-mode-label">SINGLE PLAYER · CLUB</div>
+        <button class="restart-button" id="restart-game" type="button"><span>↻</span> New game</button>
+      </div>
+
+      <div class="board-area">
+        <div class="match-heading">
+          <div>
+            <span class="section-kicker">HARRYXCHESS</span>
+            <h2 id="match-title">Your match</h2>
           </div>
           <div class="game-status-pill" id="turn-status"><i></i><span>White to move</span></div>
+        </div>
+
+        <div class="player-strip top-player">
+          <div class="player-piece black-piece" id="top-player-piece">♚</div>
+          <div class="player-details"><strong id="top-player-name">Harryx AI</strong><span id="top-player-detail">Computer opponent</span></div>
+          <span class="player-side-label" id="top-side-label">BLACK</span>
         </div>
 
         <div class="board-stage">
@@ -59,131 +125,41 @@
           </div>
         </div>
 
-        <div class="board-card-bottom">
-          <div class="opponent-summary bottom-player">
-            <div class="avatar avatar-light" id="bottom-avatar">♔</div>
-            <div class="opponent-copy">
-              <strong id="bottom-player-name">You</strong>
-              <span id="bottom-player-detail">Playing as White</span>
-            </div>
-          </div>
-          <div class="board-tools">
-            <button class="icon-button" id="flip-board" type="button" title="Flip board" aria-label="Flip board">⇅</button>
-            <button class="icon-button" id="sound-toggle" type="button" title="Toggle sound" aria-label="Toggle sound" aria-pressed="true">♫</button>
-          </div>
+        <div class="player-strip bottom-player">
+          <div class="player-piece white-piece" id="bottom-player-piece">♔</div>
+          <div class="player-details"><strong id="bottom-player-name">You</strong><span id="bottom-player-detail">Playing as White</span></div>
+          <span class="player-side-label" id="bottom-side-label">WHITE</span>
         </div>
-      </section>
 
-      <aside class="side-panel">
-        <section class="mode-card panel-card">
-          <div class="panel-heading">
-            <div>
-              <span class="section-kicker">GAME MODE</span>
-              <h2>Choose your match</h2>
-            </div>
-            <span class="mode-number">01 / 02</span>
-          </div>
-          <div class="mode-switch" role="group" aria-label="Game mode">
-            <button class="mode-option active" data-mode="ai" type="button" aria-pressed="true">
-              <span class="mode-icon">◈</span><span><strong>Vs AI</strong><small>Play the computer</small></span>
-            </button>
-            <button class="mode-option" data-mode="local" type="button" aria-pressed="false">
-              <span class="mode-icon">♟</span><span><strong>2 Players</strong><small>Play with a friend</small></span>
-            </button>
-          </div>
-          <div class="settings-row" id="ai-settings">
-            <label class="setting-field">
-              <span>DIFFICULTY</span>
-              <select id="difficulty">
-                <option value="easy">Casual</option>
-                <option value="club" selected>Club player</option>
-                <option value="expert">Expert</option>
-              </select>
-            </label>
-            <label class="setting-field">
-              <span>PLAY AS</span>
-              <select id="human-color">
-                <option value="w" selected>White</option>
-                <option value="b">Black</option>
-              </select>
-            </label>
-          </div>
-          <div class="local-note" id="local-note" hidden>
-            <span class="local-note-icon">♙</span>
-            <span>One board, two players. Pass the device after each move.</span>
-          </div>
-        </section>
-
-        <section class="players-card panel-card">
-          <div class="panel-heading compact-heading">
-            <div>
-              <span class="section-kicker">AT THE BOARD</span>
-              <h2>Players</h2>
-            </div>
-            <span class="turn-label" id="move-count">MOVE 1</span>
-          </div>
-          <div class="player-row" id="white-player-row">
-            <div class="player-piece white-piece">♔</div>
-            <div class="player-info"><strong id="white-player-name">You</strong><span id="white-player-sub">White pieces</span></div>
-            <span class="player-turn-dot" id="white-turn-dot"></span>
-          </div>
-          <div class="player-row" id="black-player-row">
-            <div class="player-piece black-piece">♚</div>
-            <div class="player-info"><strong id="black-player-name">Harryx AI</strong><span id="black-player-sub">Black pieces</span></div>
-            <span class="player-turn-dot" id="black-turn-dot"></span>
-          </div>
-          <div class="captured-section">
-            <div class="captured-line"><span>CAPTURED BY WHITE</span><div id="white-captured" class="captured-pieces">—</div></div>
-            <div class="captured-line"><span>CAPTURED BY BLACK</span><div id="black-captured" class="captured-pieces">—</div></div>
-          </div>
-        </section>
-
-        <section class="moves-card panel-card">
-          <div class="panel-heading compact-heading">
-            <div>
-              <span class="section-kicker">MATCH RECORD</span>
-              <h2>Move history</h2>
-            </div>
-            <span class="move-total" id="move-total">0 plies</span>
-          </div>
-          <div class="moves-list" id="moves-list" aria-live="polite">
-            <div class="empty-moves"><span>♞</span><p>Your opening move starts here.</p></div>
-          </div>
-        </section>
-
-        <section class="action-area">
-          <button class="primary-action" id="new-game" type="button"><span>＋</span> New game</button>
-          <button class="secondary-action" id="undo-move" type="button"><span>↶</span> Undo move</button>
-        </section>
-      </aside>
-    </section>
-
-    <section class="result-banner" id="result-banner" hidden aria-live="assertive">
-      <div class="result-icon" id="result-icon">♛</div>
-      <div><span class="section-kicker">MATCH COMPLETE</span><strong id="result-title">Checkmate</strong><p id="result-description">The game is over.</p></div>
-      <button id="result-new-game" type="button">Play again <span>→</span></button>
-    </section>
-
-    <section class="below-board" id="how-to-play">
-      <div class="tip-card">
-        <span class="tip-icon">♘</span>
-        <div><strong>Play your way</strong><p>Take on the AI at three difficulty levels, or share the board for a local two-player match.</p></div>
+        <div class="board-controls">
+          <span class="board-hint" id="board-hint">Select a piece to see its legal moves.</span>
+          <button class="flip-button" id="flip-board" type="button" title="Flip board"><span>⇅</span> Flip board</button>
+        </div>
       </div>
-      <div class="tip-card">
-        <span class="tip-icon">⌘</span>
-        <div><strong>Every rule included</strong><p>Legal moves, castling, en passant, promotion, check, checkmate and draw detection are handled for you.</p></div>
-      </div>
-      <div class="tip-card">
-        <span class="tip-icon">↶</span>
-        <div><strong>Learn as you go</strong><p>Review the move list, undo a turn, flip the board and track captured pieces as the match unfolds.</p></div>
+
+      <div class="result-banner" id="result-banner" hidden aria-live="assertive">
+        <div class="result-icon" id="result-icon">♛</div>
+        <div class="result-copy"><span class="section-kicker">MATCH COMPLETE</span><strong id="result-title">Checkmate</strong><p id="result-description">The game is over.</p></div>
+        <button id="result-new-game" type="button">Play again <span>→</span></button>
       </div>
     </section>
-
-    <footer class="site-footer">
-      <span>© 2026 HARRYXCHESS</span>
-      <span>BUILT FOR THE LOVE OF THE GAME <b>·</b> <span class="footer-dot"></span> ALL MOVES MATTER</span>
-    </footer>
   </main>
+
+  <div class="modal-backdrop" id="how-to-modal" hidden>
+    <section class="info-dialog" role="dialog" aria-modal="true" aria-labelledby="how-to-title">
+      <button class="modal-close" id="close-how-to" type="button" aria-label="Close">×</button>
+      <span class="section-kicker">THE BASICS</span>
+      <h2 id="how-to-title">How to play chess</h2>
+      <p class="dialog-intro">The aim is to checkmate your opponent's king — put it under attack so it has no legal escape.</p>
+      <div class="rules-list">
+        <div><span class="rule-piece">♙</span><p><strong>Take your turn</strong><small>White moves first. Select one of your pieces, then choose a highlighted square.</small></p></div>
+        <div><span class="rule-piece">♘</span><p><strong>Learn the pieces</strong><small>Pawns move forward, rooks move in straight lines, bishops diagonally, knights in an L-shape, queens in any straight line and kings one square.</small></p></div>
+        <div><span class="rule-piece">♔</span><p><strong>Protect your king</strong><small>You cannot make a move that leaves your own king in check. Checkmate ends the game.</small></p></div>
+        <div><span class="rule-piece">½</span><p><strong>Draws can happen</strong><small>A game can also end in a draw, including stalemate or repeated positions.</small></p></div>
+      </div>
+      <button class="dialog-done" id="done-how-to" type="button">Got it</button>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="promotion-modal" hidden>
     <div class="promotion-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
@@ -193,6 +169,7 @@
       <div class="promotion-options" id="promotion-options"></div>
     </div>
   </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
