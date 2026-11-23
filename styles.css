@@ -224,7 +224,7 @@ button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid
 /* Compact, viewport-aware match layout: keep the complete board on screen. */
 .game-screen { padding: 12px 0 14px; }
 .game-topbar { margin-bottom: 12px; }
-.board-area { width: min(100%, 620px, calc(100svh - 335px)); }
+.board-area { width: min(100%, 620px); }
 .match-heading { margin-bottom: 8px; }
 .player-strip { min-height: 40px; padding: 5px 9px; }
 .top-player { margin-bottom: 7px; }
@@ -237,7 +237,7 @@ button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid
 @media (max-width: 700px) {
   .game-screen { padding: 10px 0 12px; }
   .game-topbar { margin-bottom: 11px; }
-  .board-area { width: min(100%, calc(100svh - 360px)); }
+  .board-area { width: min(100%, 560px); }
   .match-heading { margin-bottom: 7px; }
   .player-strip { min-height: 38px; padding: 4px 7px; }
   .top-player { margin-bottom: 6px; }
