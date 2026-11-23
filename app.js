@@ -11,10 +11,6 @@ const PIECES = {
   bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚"
 };
 const PIECE_VALUES = { p: 100, n: 320, b: 335, r: 500, q: 950, k: 20000 };
-const INITIAL_COUNTS = {
-  w: { p: 8, n: 2, b: 2, r: 2, q: 1 },
-  b: { p: 8, n: 2, b: 2, r: 2, q: 1 }
-};
 const PROMOTION_TYPES = ["q", "r", "b", "n"];
 const MATE_SCORE = 100000;
 
@@ -103,21 +99,14 @@ function renderBoard() {
 }
 
 function capturedPieces(capturedBy) {
-  const board = game.board();
-  const remaining = {
-    w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
-    b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
-  };
-  for (const row of board) {
-    for (const piece of row) {
-      if (piece && piece.type !== "k") remaining[piece.color][piece.type] += 1;
-    }
-  }
   const capturedColor = opposite(capturedBy);
+  const captures = game.history({ verbose: true })
+    .filter((move) => move.color === capturedBy && move.captured)
+    .map((move) => move.captured);
   const order = ["q", "r", "b", "n", "p"];
   let output = "";
   for (const type of order) {
-    const count = Math.max(0, INITIAL_COUNTS[capturedColor][type] - remaining[capturedColor][type]);
+    const count = captures.filter((piece) => piece === type).length;
     output += PIECES[capturedColor + type].repeat(count);
   }
   return output || "—";
@@ -451,8 +440,7 @@ function moveOrderScore(move) {
 }
 
 function quiescence(position, alpha, beta, ply, remaining) {
-  if (position.isCheckmate()) return -MATE_SCORE + ply;
-  if (position.isDraw()) return 0;
+  if (position.isGameOver()) return position.isCheckmate() ? -MATE_SCORE + ply : 0;
   const inCheck = position.isCheck();
   const standPat = evaluatePosition(position);
   if (!inCheck) {
@@ -475,8 +463,7 @@ function quiescence(position, alpha, beta, ply, remaining) {
 }
 
 function negamax(position, depth, alpha, beta, ply) {
-  if (position.isCheckmate()) return -MATE_SCORE + ply;
-  if (position.isDraw()) return 0;
+  if (position.isGameOver()) return position.isCheckmate() ? -MATE_SCORE + ply : 0;
   if (depth <= 0) return quiescence(position, alpha, beta, ply, 2);
 
   const moves = orderMoves(position.moves({ verbose: true }));
@@ -549,6 +536,7 @@ function undoMove() {
   closePromotion();
   updateUI();
   showToast("Last turn undone.");
+  if (mode === "ai" && !game.isGameOver() && game.turn() !== humanColor) scheduleComputerMove();
 }
 
 function flipBoard() {
