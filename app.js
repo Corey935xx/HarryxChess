@@ -4,6 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 const boardElement = $("#chessboard");
 const promotionModal = $("#promotion-modal");
 const promotionOptions = $("#promotion-options");
+const howToModal = $("#how-to-modal");
 const toastElement = $("#toast");
 
 const PIECES = {
@@ -24,6 +25,7 @@ let selectedMoves = [];
 let thinking = false;
 let soundEnabled = true;
 let pendingPromotion = null;
+let inGame = false;
 let toastTimer = null;
 
 function opposite(color) {
@@ -51,14 +53,11 @@ function renderBoard() {
   const fragment = document.createDocumentFragment();
   const ranks = flipped ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
   const files = flipped ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-  const history = game.history({ verbose: true });
-  const lastMove = history[history.length - 1];
+  const lastMove = game.history({ verbose: true }).at(-1);
   const checkedKing = game.isCheck() ? getKingSquare(game.turn()) : null;
   const legalTargets = new Map();
 
-  for (const move of selectedMoves) {
-    legalTargets.set(move.to, move);
-  }
+  for (const move of selectedMoves) legalTargets.set(move.to, move);
 
   for (let row = 0; row < 8; row += 1) {
     const rank = ranks[row];
@@ -67,9 +66,8 @@ function renderBoard() {
       const square = squareName(file, rank);
       const piece = game.get(square);
       const cell = document.createElement("button");
-      const isLight = (file + rank) % 2 === 1;
       cell.type = "button";
-      cell.className = "square " + (isLight ? "light" : "dark");
+      cell.className = "square " + ((file + rank) % 2 === 1 ? "light" : "dark");
       cell.dataset.square = square;
       cell.setAttribute("aria-label", square + (piece ? ", " + (piece.color === "w" ? "white " : "black ") + piece.type : ""));
 
@@ -98,47 +96,8 @@ function renderBoard() {
   boardElement.setAttribute("aria-label", flipped ? "Chess board, black side nearest" : "Chess board, white side nearest");
 }
 
-function capturedPieces(capturedBy) {
-  const capturedColor = opposite(capturedBy);
-  const captures = game.history({ verbose: true })
-    .filter((move) => move.color === capturedBy && move.captured)
-    .map((move) => move.captured);
-  const order = ["q", "r", "b", "n", "p"];
-  let output = "";
-  for (const type of order) {
-    const count = captures.filter((piece) => piece === type).length;
-    output += PIECES[capturedColor + type].repeat(count);
-  }
-  return output || "—";
-}
-
-function renderMoves() {
-  const history = game.history({ verbose: true });
-  $("#move-total").textContent = history.length + (history.length === 1 ? " ply" : " plies");
-  $("#move-count").textContent = "MOVE " + (Math.floor(history.length / 2) + 1);
-  if (!history.length) {
-    $("#moves-list").innerHTML = '<div class="empty-moves"><span>♞</span><p>Your opening move starts here.</p></div>';
-    $("#undo-move").disabled = true;
-    return;
-  }
-
-  const rows = [];
-  for (let index = 0; index < history.length; index += 2) {
-    const whiteMove = history[index];
-    const blackMove = history[index + 1];
-    const whiteLatest = index === history.length - 1;
-    const blackLatest = index + 1 === history.length - 1;
-    rows.push(
-      '<div class="move-pair">' +
-        '<span class="move-number">' + (Math.floor(index / 2) + 1) + '.</span>' +
-        '<span class="move-san' + (whiteLatest ? ' latest' : '') + '">' + whiteMove.san + '</span>' +
-        '<span class="move-san' + (blackLatest ? ' latest' : '') + '">' + (blackMove ? blackMove.san : "") + '</span>' +
-      '</div>'
-    );
-  }
-  $("#moves-list").innerHTML = rows.join("");
-  $("#moves-list").scrollTop = $("#moves-list").scrollHeight;
-  $("#undo-move").disabled = thinking || history.length === 0;
+function difficultyLabel() {
+  return ({ easy: "Casual", club: "Club player", expert: "Expert" })[difficulty];
 }
 
 function playerName(color) {
@@ -152,36 +111,29 @@ function updatePlayers() {
   const bottomName = playerName(bottomColor);
   const topName = playerName(topColor);
   const detail = (color) => mode === "local"
-    ? (color === "w" ? "White pieces" : "Black pieces")
-    : (color === humanColor ? "Playing as " + (color === "w" ? "White" : "Black") : difficultyLabel() + " opponent");
+    ? (color === "w" ? "White pieces · Player 1" : "Black pieces · Player 2")
+    : (color === humanColor ? "Your pieces" : difficultyLabel() + " opponent");
 
   $("#top-player-name").textContent = topName;
   $("#top-player-detail").textContent = detail(topColor);
-  $("#top-avatar").textContent = PIECES[topColor + "k"];
-  $("#top-avatar").className = "avatar " + (topColor === "w" ? "avatar-light" : "avatar-dark");
+  $("#top-player-piece").textContent = PIECES[topColor + "k"];
+  $("#top-player-piece").className = "player-piece " + (topColor === "w" ? "white-piece" : "black-piece");
+  $("#top-side-label").textContent = topColor === "w" ? "WHITE" : "BLACK";
+
   $("#bottom-player-name").textContent = bottomName;
   $("#bottom-player-detail").textContent = detail(bottomColor);
-  $("#bottom-avatar").textContent = PIECES[bottomColor + "k"];
-  $("#bottom-avatar").className = "avatar " + (bottomColor === "w" ? "avatar-light" : "avatar-dark");
+  $("#bottom-player-piece").textContent = PIECES[bottomColor + "k"];
+  $("#bottom-player-piece").className = "player-piece " + (bottomColor === "w" ? "white-piece" : "black-piece");
+  $("#bottom-side-label").textContent = bottomColor === "w" ? "WHITE" : "BLACK";
 
-  $("#white-player-name").textContent = playerName("w");
-  $("#black-player-name").textContent = playerName("b");
-  $("#white-player-sub").textContent = mode === "local" ? "White pieces · Player 1" : (humanColor === "w" ? "Your pieces" : difficultyLabel() + " AI");
-  $("#black-player-sub").textContent = mode === "local" ? "Black pieces · Player 2" : (humanColor === "b" ? "Your pieces" : difficultyLabel() + " AI");
-  $("#white-player-row").classList.toggle("active", game.turn() === "w" && !game.isGameOver());
-  $("#black-player-row").classList.toggle("active", game.turn() === "b" && !game.isGameOver());
-  $("#white-turn-dot").style.opacity = game.turn() === "w" && !game.isGameOver() ? "1" : "0";
-  $("#black-turn-dot").style.opacity = game.turn() === "b" && !game.isGameOver() ? "1" : "0";
-  $("#white-captured").textContent = capturedPieces("w");
-  $("#black-captured").textContent = capturedPieces("b");
-}
-
-function difficultyLabel() {
-  return ({ easy: "Casual", club: "Club", expert: "Expert" })[difficulty];
+  $("#game-mode-label").textContent = mode === "local"
+    ? "TWO PLAYERS · LOCAL MATCH"
+    : "SINGLE PLAYER · " + difficultyLabel().toUpperCase();
+  $("#match-title").textContent = mode === "local" ? "Local match" : "Your match";
 }
 
 function statusLabel() {
-  if (thinking) return "AI is thinking…";
+  if (thinking) return "Harryx AI is thinking…";
   if (game.isCheckmate()) return "Checkmate";
   if (game.isStalemate()) return "Stalemate";
   if (game.isThreefoldRepetition()) return "Draw by repetition";
@@ -196,20 +148,20 @@ function updateStatus() {
   pill.classList.toggle("thinking", thinking);
   pill.classList.toggle("finished", game.isGameOver());
   pill.querySelector("span").textContent = statusLabel();
+
+  const hint = $("#board-hint");
+  if (game.isGameOver()) hint.textContent = "Match complete.";
+  else if (thinking) hint.textContent = "Harryx AI is considering its move…";
+  else if (selectedSquare) hint.textContent = "Choose a highlighted square for your move.";
+  else if (mode === "ai" && game.turn() !== humanColor) hint.textContent = "Waiting for Harryx AI…";
+  else hint.textContent = "Select a piece to see its legal moves.";
 }
 
 function updateUI() {
+  if (!inGame) return;
   renderBoard();
-  renderMoves();
   updatePlayers();
   updateStatus();
-  $("#ai-settings").hidden = mode !== "ai";
-  $("#local-note").hidden = mode !== "local";
-  document.querySelectorAll(".mode-option").forEach((button) => {
-    const active = button.dataset.mode === mode;
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
   $("#result-banner").hidden = !game.isGameOver();
   if (game.isGameOver()) showResult();
 }
@@ -260,7 +212,7 @@ function playSound(kind = "move") {
     oscillator.type = "sine";
     oscillator.frequency.value = frequencies[kind] || frequencies.move;
     gain.gain.setValueAtTime(.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.075, context.currentTime + .012);
+    gain.gain.exponentialRampToValueAtTime(.07, context.currentTime + .012);
     gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + .15);
     oscillator.connect(gain);
     gain.connect(context.destination);
@@ -268,7 +220,7 @@ function playSound(kind = "move") {
     oscillator.stop(context.currentTime + .16);
     oscillator.onended = () => context.close();
   } catch (error) {
-    // Sound is an enhancement; a browser without Web Audio can still play normally.
+    // Browsers without Web Audio can still play the game normally.
   }
 }
 
@@ -281,11 +233,12 @@ function selectSquare(square) {
   selectedSquare = square;
   selectedMoves = game.moves({ square, verbose: true });
   renderBoard();
+  updateStatus();
 }
 
 function handleSquareClick(event) {
   const squareButton = event.target.closest(".square");
-  if (!squareButton || thinking || game.isGameOver()) return;
+  if (!squareButton || !inGame || thinking || game.isGameOver() || pendingPromotion) return;
   if (mode === "ai" && game.turn() !== humanColor) return;
 
   const square = squareButton.dataset.square;
@@ -293,11 +246,8 @@ function handleSquareClick(event) {
     const destinationMoves = selectedMoves.filter((move) => move.to === square);
     if (destinationMoves.length) {
       const promotionMoves = destinationMoves.filter((move) => move.promotion);
-      if (promotionMoves.length) {
-        openPromotion(square, promotionMoves);
-      } else {
-        playMove(selectedSquare, square);
-      }
+      if (promotionMoves.length) openPromotion(square, promotionMoves);
+      else playMove(selectedSquare, square);
       return;
     }
   }
@@ -312,6 +262,7 @@ function handleSquareClick(event) {
   }
   clearSelection();
   renderBoard();
+  updateStatus();
 }
 
 function openPromotion(to, moves) {
@@ -325,8 +276,9 @@ function openPromotion(to, moves) {
     button.setAttribute("aria-label", "Promote to " + ({ q: "queen", r: "rook", b: "bishop", n: "knight" })[type]);
     button.textContent = PIECES[color + type];
     button.addEventListener("click", () => {
-      const moveExists = moves.some((move) => move.promotion === type);
-      if (moveExists && pendingPromotion) playMove(pendingPromotion.from, pendingPromotion.to, type);
+      if (moves.some((move) => move.promotion === type) && pendingPromotion) {
+        playMove(pendingPromotion.from, pendingPromotion.to, type);
+      }
     });
     promotionOptions.append(button);
   }
@@ -345,11 +297,8 @@ function playMove(from, to, promotion = "q") {
     closePromotion();
     playSound(move.captured ? "capture" : (game.isCheck() ? "check" : "move"));
     updateUI();
-    if (game.isGameOver()) {
-      playSound("end");
-    } else if (mode === "ai" && game.turn() !== humanColor) {
-      scheduleComputerMove();
-    }
+    if (game.isGameOver()) playSound("end");
+    else if (mode === "ai" && game.turn() !== humanColor) scheduleComputerMove();
     return true;
   } catch (error) {
     showToast("That move isn't legal. Try another square.");
@@ -360,13 +309,12 @@ function playMove(from, to, promotion = "q") {
 }
 
 function scheduleComputerMove() {
-  if (mode !== "ai" || game.isGameOver() || game.turn() === humanColor || thinking) return;
+  if (!inGame || mode !== "ai" || game.isGameOver() || game.turn() === humanColor || thinking) return;
   thinking = true;
   updateUI();
   window.setTimeout(() => {
-    if (mode !== "ai" || game.isGameOver() || game.turn() === humanColor) {
+    if (!inGame || mode !== "ai" || game.isGameOver() || game.turn() === humanColor) {
       thinking = false;
-      updateUI();
       return;
     }
     const bestMove = chooseComputerMove(game, difficulty);
@@ -380,7 +328,7 @@ function scheduleComputerMove() {
         });
         playSound(move.captured ? "capture" : (game.isCheck() ? "check" : "move"));
       } catch (error) {
-        showToast("The AI couldn't complete its move. Start a new game to continue.");
+        showToast("The AI couldn't complete its move. Please start a new game.");
       }
     }
     updateUI();
@@ -389,7 +337,7 @@ function scheduleComputerMove() {
 }
 
 function evaluatePosition(position) {
-  let whiteScore = 0;
+  let score = 0;
   const rows = position.board();
   for (let row = 0; row < 8; row += 1) {
     for (let file = 0; file < 8; file += 1) {
@@ -399,34 +347,18 @@ function evaluatePosition(position) {
       const centre = 3.5 - (Math.abs(file - 3.5) + Math.abs(rank - 3.5)) / 2;
       let positional = 0;
       switch (piece.type) {
-        case "p":
-          positional = (piece.color === "w" ? rank : 7 - rank) * 7 + centre * 1.5;
-          break;
-        case "n":
-          positional = centre * 10;
-          break;
-        case "b":
-          positional = centre * 5;
-          break;
-        case "r":
-          positional = (piece.color === "w" ? rank : 7 - rank) * 1.5;
-          break;
-        case "q":
-          positional = centre * 2;
-          break;
-        case "k":
-          positional = -centre * 3;
-          break;
+        case "p": positional = (piece.color === "w" ? rank : 7 - rank) * 7 + centre * 1.5; break;
+        case "n": positional = centre * 10; break;
+        case "b": positional = centre * 5; break;
+        case "r": positional = (piece.color === "w" ? rank : 7 - rank) * 1.5; break;
+        case "q": positional = centre * 2; break;
+        case "k": positional = -centre * 3; break;
       }
       const value = PIECE_VALUES[piece.type] + positional;
-      whiteScore += piece.color === "w" ? value : -value;
+      score += piece.color === "w" ? value : -value;
     }
   }
-  return position.turn() === "w" ? whiteScore : -whiteScore;
-}
-
-function orderMoves(moves) {
-  return moves.sort((a, b) => moveOrderScore(b) - moveOrderScore(a));
+  return position.turn() === "w" ? score : -score;
 }
 
 function moveOrderScore(move) {
@@ -437,6 +369,10 @@ function moveOrderScore(move) {
   else if (move.san && move.san.includes("+")) score += 45;
   if (move.flags && (move.flags.includes("k") || move.flags.includes("q"))) score += 20;
   return score;
+}
+
+function orderMoves(moves) {
+  return moves.sort((a, b) => moveOrderScore(b) - moveOrderScore(a));
 }
 
 function quiescence(position, alpha, beta, ply, remaining) {
@@ -507,36 +443,51 @@ function chooseComputerMove(currentGame, level) {
   return chosenMove;
 }
 
-function startNewGame(showMessage = true) {
+function refreshModeSetup() {
+  document.querySelectorAll(".mode-choice").forEach((button) => {
+    const active = button.dataset.mode === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  $("#ai-settings").hidden = mode !== "ai";
+  $("#local-note").hidden = mode !== "local";
+}
+
+function startGame() {
+  difficulty = $("#difficulty").value;
+  humanColor = $("#human-color").value;
+  game = new Chess();
+  clearSelection();
+  closePromotion();
+  thinking = false;
+  inGame = true;
+  flipped = mode === "ai" && humanColor === "b";
+  $("#home-screen").hidden = true;
+  $("#game-screen").hidden = false;
+  $("#home-header-actions").hidden = true;
+  updateUI();
+  if (mode === "ai" && humanColor === "b") scheduleComputerMove();
+}
+
+function returnToMenu() {
+  inGame = false;
+  thinking = false;
+  clearSelection();
+  closePromotion();
+  $("#game-screen").hidden = true;
+  $("#home-screen").hidden = false;
+  $("#home-header-actions").hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function startNewGame() {
   game = new Chess();
   clearSelection();
   closePromotion();
   thinking = false;
   flipped = mode === "ai" && humanColor === "b";
   updateUI();
-  if (showMessage) showToast("A fresh game. Make your move.");
   if (mode === "ai" && humanColor === "b") scheduleComputerMove();
-}
-
-function changeMode(nextMode) {
-  if (mode === nextMode) return;
-  mode = nextMode;
-  thinking = false;
-  startNewGame(false);
-  showToast(mode === "ai" ? "Playing against Harryx AI." : "Local two-player mode is ready.");
-}
-
-function undoMove() {
-  if (thinking) return;
-  const historyLength = game.history().length;
-  if (!historyLength) return;
-  game.undo();
-  if (mode === "ai" && historyLength >= 2) game.undo();
-  clearSelection();
-  closePromotion();
-  updateUI();
-  showToast("Last turn undone.");
-  if (mode === "ai" && !game.isGameOver() && game.turn() !== humanColor) scheduleComputerMove();
 }
 
 function flipBoard() {
@@ -544,36 +495,55 @@ function flipBoard() {
   renderBoard();
 }
 
-$("#chessboard").addEventListener("click", handleSquareClick);
-document.querySelectorAll(".mode-option").forEach((button) => {
-  button.addEventListener("click", () => changeMode(button.dataset.mode));
+function openHowToPlay() {
+  howToModal.hidden = false;
+  $("#close-how-to").focus();
+}
+
+function closeHowToPlay() {
+  howToModal.hidden = true;
+}
+
+boardElement.addEventListener("click", handleSquareClick);
+
+document.querySelectorAll(".mode-choice").forEach((button) => {
+  button.addEventListener("click", () => {
+    mode = button.dataset.mode;
+    refreshModeSetup();
+  });
 });
-$("#difficulty").addEventListener("change", (event) => {
-  difficulty = event.target.value;
-  updatePlayers();
-  showToast("Difficulty set to " + difficultyLabel() + ".");
-});
-$("#human-color").addEventListener("change", (event) => {
-  humanColor = event.target.value;
-  startNewGame(false);
-  showToast("You're playing as " + (humanColor === "w" ? "White" : "Black") + ".");
-});
-$("#new-game").addEventListener("click", () => startNewGame());
-$("#result-new-game").addEventListener("click", () => startNewGame());
-$("#undo-move").addEventListener("click", undoMove);
+
+$("#play-game").addEventListener("click", startGame);
+$("#back-home").addEventListener("click", returnToMenu);
+$("#restart-game").addEventListener("click", startNewGame);
 $("#flip-board").addEventListener("click", flipBoard);
-$("#sound-toggle").addEventListener("click", (event) => {
-  soundEnabled = !soundEnabled;
-  event.currentTarget.setAttribute("aria-pressed", String(soundEnabled));
-  event.currentTarget.title = soundEnabled ? "Toggle sound off" : "Toggle sound on";
-  showToast(soundEnabled ? "Move sounds enabled." : "Move sounds muted.");
+$("#result-new-game").addEventListener("click", startNewGame);
+
+$("#header-how-to-play").addEventListener("click", openHowToPlay);
+$("#how-to-play").addEventListener("click", openHowToPlay);
+$("#close-how-to").addEventListener("click", closeHowToPlay);
+$("#done-how-to").addEventListener("click", closeHowToPlay);
+howToModal.addEventListener("click", (event) => {
+  if (event.target === howToModal) closeHowToPlay();
 });
+
 promotionModal.addEventListener("click", (event) => {
   if (event.target === promotionModal) {
     closePromotion();
     clearSelection();
-    renderBoard();
+    updateUI();
   }
 });
 
-updateUI();
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (!howToModal.hidden) closeHowToPlay();
+    if (!promotionModal.hidden) {
+      closePromotion();
+      clearSelection();
+      updateUI();
+    }
+  }
+});
+
+refreshModeSetup();
