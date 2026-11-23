@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">HarryxChess mark</title>
+  <desc id="desc">A geometric chess knight in a deep green rounded square.</desc>
+  <defs>
+    <linearGradient id="field" x1="12" y1="8" x2="116" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#263a2a"/>
+      <stop offset="1" stop-color="#142019"/>
+    </linearGradient>
+    <linearGradient id="knight" x1="35" y1="19" x2="88" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f1f5e9"/>
+      <stop offset="1" stop-color="#bdcdb2"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="122" height="122" rx="27" fill="url(#field)"/>
+  <rect x="3.75" y="3.75" width="120.5" height="120.5" rx="26.25" stroke="#a7d879" stroke-opacity=".32" stroke-width="1.5"/>
+  <path d="M33 96.5h65v8H28v-8h5Z" fill="#a7d879"/>
+  <path d="M36 91.5V78.2c0-8.3 4.1-15.8 10.8-20.6l8.7-6.2-2.9-13.1L39.7 26.5 61.9 15l22.3 9.8 10.6 21.7-9.9 15.1-.4 14.2 11.3 15.7H36Z" fill="url(#knight)"/>
+  <path d="m56.4 38.2 17.3 5.2-5.6 9.2-11.7-2.4-2.8-12Z" fill="#718a70"/>
+  <path d="M76.8 37.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Z" fill="#a7d879"/>
+  <path d="M52.7 60.8c10.8 6.1 19.2 5.8 26.7-.6l4.1 10.9-3.1 17.4H48.7l4-27.7Z" fill="#d4dfcb"/>
+  <path d="M43.5 81.3h42.8l9.8 10.2H36l7.5-10.2Z" fill="#9eaf95"/>
+  <path d="M90.4 24.9 98 39.5" stroke="#a7d879" stroke-width="3" stroke-linecap="round"/>
+</svg>
